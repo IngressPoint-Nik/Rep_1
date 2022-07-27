@@ -1,0 +1,40 @@
+name: Merge validation
+on: 
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+    branches: [ main ]
+
+jobs:
+  merge-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://npm.pkg.github.com/
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2.2.1
+        with:
+          version: 7.0.0
+
+      - name: Install packages & build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+        env:
+          NPM_TOKEN: ${{secrets.GH_PAT_PACKAGE }}
+      - name: Run tests
+        run:
+          pnpm test
